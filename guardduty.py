@@ -19,10 +19,17 @@ for region in regions:
     for detector in detectors:
         # get guardduty member accounts across all regions
         members = guardduty.list_members(DetectorId=detector)['Members']
+        # enable lambda protection in delegated admin account across all regions
+        guardduty.update_detector(DetectorId=detector, Features=[{'Name': 'LAMBDA_NETWORK_LOGS', 'Status': 'ENABLED'}])
+        # enable lambda protection for the new member accounts across all regions  
+        guardduty.update_organization_configuration(DetectorId=detector, AutoEnableOrganizationMembers='NEW', Features=[{'Name': 'LAMBDA_NETWORK_LOGS', 'AutoEnable': 'NEW'}])      
         # enable rds protection in delegated admin account across all regions
         guardduty.update_detector(DetectorId=detector, Features=[{'Name': 'RDS_LOGIN_EVENTS', 'Status': 'ENABLED'}])
         # enable rds protection for the new member accounts across all regions
         guardduty.update_organization_configuration(DetectorId=detector, AutoEnableOrganizationMembers='NEW', Features=[{'Name': 'RDS_LOGIN_EVENTS', 'AutoEnable': 'NEW'}])
         # enable rds protection for member accounts across all regions
         for member in members:
+            # enable lambda protection for member accounts
+            guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'LAMBDA_NETWORK_LOGS', 'Status': 'ENABLED'}])
+            # enable rds protection for member accounts
             guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'RDS_LOGIN_EVENTS', 'Status': 'ENABLED'}])
