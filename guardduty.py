@@ -21,6 +21,7 @@ regions = ec2.describe_regions()['Regions']
 
 # enable AWS GuarDuty protection plans in each AWS account and region with EKS Protection exceptions
 for region in regions:
+
     regional_session = boto3.Session(profile_name=default_profile_name, region_name=region['RegionName'])
     guardduty = regional_session.client('guardduty')
     detectors = guardduty.list_detectors()['DetectorIds']
@@ -33,7 +34,7 @@ for region in regions:
         guardduty.update_detector(DetectorId=detector, Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'Status': 'ENABLED', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','Status': 'ENABLED'}] }])
         guardduty.update_organization_configuration(DetectorId=detector, AutoEnableOrganizationMembers='NEW', Features=[{'Name': 'EKS_AUDIT_LOGS', 'AutoEnable': 'NEW'}])
         guardduty.update_organization_configuration(DetectorId=detector, AutoEnableOrganizationMembers='NEW', Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'AutoEnable': 'NEW', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','AutoEnable': 'NEW'}] }])
-            
+
         # enable S3 Protection in Delegated Admin account and for the new AWS accounts
         guardduty.update_detector(DetectorId=detector, Features=[{'Name': 'S3_DATA_EVENTS', 'Status': 'ENABLED'}])
         guardduty.update_organization_configuration(DetectorId=detector, AutoEnableOrganizationMembers='NEW', Features=[{'Name': 'S3_DATA_EVENTS', 'AutoEnable': 'NEW'}])
@@ -55,32 +56,35 @@ for region in regions:
             
             # configure EKS Protection in member accounts
             if eks_exception:
+                eks_exception_check = False
                 for exception in eks_exception:
                     if region['RegionName'] == exception['RegionName'] and member['AccountId'] == exception['AccountId']:
-                        logging.info("EKS Protection  will be disabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
-                        guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_AUDIT_LOGS', 'Status': 'DISABLED'}])
-                        guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'Status': 'DISABLED', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','Status': 'DISABLED'}] }])
-                    else:
-                        logging.info("EKS Protection will be enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
-                        guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_AUDIT_LOGS', 'Status': 'ENABLED'}])
-                        guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'Status': 'ENABLED', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','Status': 'ENABLED'}] }])
+                        eks_exception_check = True
+                if eks_exception_check == True:
+                    guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_AUDIT_LOGS', 'Status': 'DISABLED'}])
+                    guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'Status': 'DISABLED', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','Status': 'DISABLED'}] }])
+                    logging.info("EKS Protection  was disabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
+                else:
+                    guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_AUDIT_LOGS', 'Status': 'ENABLED'}])
+                    guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'Status': 'ENABLED', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','Status': 'ENABLED'}] }])
+                    logging.info("EKS Protection was enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
             else:
-                logging.info("EKS Protection will be enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
                 guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_AUDIT_LOGS', 'Status': 'ENABLED'}])
                 guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'Status': 'ENABLED', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','Status': 'ENABLED'}] }])
-            
+                logging.info("EKS Protection was enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
+
             # enable S3 Protection in member accounts
             guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'S3_DATA_EVENTS', 'Status': 'ENABLED'}])
-            logging.info("S3 Protection will be enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
+            logging.info("S3 Protection was enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
             
             # enable Malware Protection in member accounts
             guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'EBS_MALWARE_PROTECTION', 'Status': 'ENABLED'}])
-            logging.info("Malware Protection will be enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
+            logging.info("Malware Protection was enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
 
             # enable Lambda Protection in member accounts
             guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'LAMBDA_NETWORK_LOGS', 'Status': 'ENABLED'}])
-            logging.info("Lambda Protection will be enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
+            logging.info("Lambda Protection was enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
 
             # enable RDS Protection in member accounts
             guardduty.update_member_detectors(DetectorId=detector, AccountIds=[member['AccountId']], Features=[{'Name': 'RDS_LOGIN_EVENTS', 'Status': 'ENABLED'}])
-            logging.info("RDS Protection will be enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
+            logging.info("RDS Protection was enabled for the account {0} in {1} region".format(str(region['RegionName']), str(member['AccountId'])))
