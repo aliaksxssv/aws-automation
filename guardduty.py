@@ -31,8 +31,8 @@ for region in regions:
         # enable EKS Protection in Delegated Admin account and for the new AWS accounts
         guardduty.update_detector(DetectorId=detector, Features=[{'Name': 'EKS_AUDIT_LOGS', 'Status': 'ENABLED'}])
         guardduty.update_detector(DetectorId=detector, Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'Status': 'ENABLED', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','Status': 'ENABLED'}] }])
-        guardduty.update_organization_configuration(DetectorId=detector, AutoEnableOrganizationMembers='NEW', Features=[{'Name': 'EKS_AUDIT_LOGS', 'Status': 'ENABLED'}])
-        guardduty.update_organization_configuration(DetectorId=detector, AutoEnableOrganizationMembers='NEW', Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'Status': 'ENABLED', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','Status': 'ENABLED'}] }])
+        guardduty.update_organization_configuration(DetectorId=detector, AutoEnableOrganizationMembers='NEW', Features=[{'Name': 'EKS_AUDIT_LOGS', 'AutoEnable': 'NEW'}])
+        guardduty.update_organization_configuration(DetectorId=detector, AutoEnableOrganizationMembers='NEW', Features=[{'Name': 'EKS_RUNTIME_MONITORING', 'AutoEnable': 'NEW', 'AdditionalConfiguration': [{'Name': 'EKS_ADDON_MANAGEMENT','AutoEnable': 'NEW'}] }])
             
         # enable S3 Protection in Delegated Admin account and for the new AWS accounts
         guardduty.update_detector(DetectorId=detector, Features=[{'Name': 'S3_DATA_EVENTS', 'Status': 'ENABLED'}])
